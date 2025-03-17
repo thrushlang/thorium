@@ -1,0 +1,24 @@
+[package]
+name = "thorium"
+description = "The package manager for Thrush Programming Language."
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+toml = "0.8.20"
+crossterm = "0.28.1"
+lazy_static = "1.5.0"
+zenity = "3.6.1"
+isahc = "1.7.2"
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+opt-level = 'z'
+codegen-units = 1
+lto = true
+panic = "abort"
+debug = false
+strip = true
+incremental = true

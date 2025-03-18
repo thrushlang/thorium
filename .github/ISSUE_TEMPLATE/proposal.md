@@ -8,3 +8,6 @@ assignees: Danixd12, DevCheckOG
 ---
 
 # Proposal
+
+
+# Proposal explanation

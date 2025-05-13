@@ -4,7 +4,7 @@
 
 # The Thrush Package Manager 
 
-The Thrush package manager is the high-level representation of the Thrush compiler, responsible for managing compilation, installation, dependency management, project creation, and successful compilation of each project.
+The Thrush package manager (**throium**) is the high-level representation of the Thrush compiler, responsible for managing compilation, installation, dependency management, project creation, and successful compilation of each project.
 
 ## Installation
 

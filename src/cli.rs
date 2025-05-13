@@ -1,9 +1,11 @@
 use {
-    super::{
-        logging,
-        printer::{Printer, StaticStringPrintable},
+    super::logging,
+    crate::commands::{
+        project,
+        toolchain::{self, AvailableToolchains, ToolchainSubCommand},
     },
-    crossterm::style,
+    colored::Colorize,
+    logging::LoggingType,
     std::process,
 };
 
@@ -35,7 +37,9 @@ impl Cli {
     }
 
     fn analyze(&mut self, command: &str, index: &mut usize) {
-        match command.trim() {
+        let command_trimmed: &str = command.trim();
+
+        match command_trimmed {
             "help" | "-h" | "--help" => {
                 *index += 1;
                 self.help();
@@ -43,23 +47,86 @@ impl Cli {
 
             "version" | "-v" | "--version" => {
                 *index += 1;
-                println!("v{}", env!("CARGO_PKG_VERSION"));
+                println!("{}", env!("CARGO_PKG_VERSION"));
+
                 process::exit(0);
             }
 
-            "install" => {
+            "toolchain" => {
                 *index += 1;
+
+                let available_toolchains: [&'static str; 1] =
+                    AvailableToolchains::get_representation();
+
+                *index += 1;
+
+                if !available_toolchains.contains(&self.get_arg(index)) {
+                    self.help_toolchain();
+                }
+
+                match self.get_arg(index) {
+                    "llvm" => {
+                        *index += 1;
+
+                        let commands: [&'static str; 3] = ToolchainSubCommand::get_representation();
+
+                        if !commands.contains(&self.get_arg(index)) {
+                            self.help_toolchain();
+                        }
+
+                        match self.get_arg(index) {
+                            "install" => {
+                                *index += 1;
+                                toolchain::execute(
+                                    AvailableToolchains::LLVM,
+                                    ToolchainSubCommand::Install,
+                                );
+                            }
+
+                            "repair" => {
+                                *index += 1;
+                                toolchain::execute(
+                                    AvailableToolchains::LLVM,
+                                    ToolchainSubCommand::Repair,
+                                );
+                            }
+
+                            "update" => {
+                                *index += 1;
+                                toolchain::execute(
+                                    AvailableToolchains::LLVM,
+                                    ToolchainSubCommand::Update,
+                                );
+                            }
+
+                            _ => {
+                                self.help_toolchain();
+                            }
+                        }
+                    }
+                    _ => {
+                        self.help_toolchain();
+                    }
+                }
             }
 
             "new" => {
-                *index += 1;
+                *index += 2;
+
+                let name: &str = self.get_arg(index);
+
+                if name == "new" {
+                    self.help_new();
+                }
+
+                if name.contains(" ") || name.contains("/") || name.contains("\\") {
+                    self.help_new();
+                }
+
+                project::create(name);
             }
 
             "add" => {
-                *index += 1;
-            }
-
-            "remove" => {
                 *index += 1;
             }
 
@@ -71,233 +138,247 @@ impl Cli {
                 *index += 1;
             }
 
-            command => {
+            _ => {
                 *index += 1;
-                self.report_error(format!("`{}` is not a command.", command));
+                self.help();
             }
         }
     }
 
-    #[inline]
-    fn extract_relative_index(&self, index: usize) -> usize {
-        if index == self.args.len() {
-            index - 1
-        } else {
-            index
-        }
-    }
+    fn help(&self) {
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{}\n\n",
+                "Thorium Package Manager"
+                    .custom_color((141, 141, 142))
+                    .bold(),
+            )
+            .as_bytes(),
+        );
 
-    #[inline]
-    fn report_error(&mut self, msg: String) {
-        logging::log(logging::LogType::Error, msg);
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {} {}\n\n",
+                "Usage:".bold(),
+                "thorium".custom_color((141, 141, 142)).bold(),
+                "[command]".bold(),
+            )
+            .as_bytes(),
+        );
+
+        logging::write(logging::OutputIn::Stderr, "Commands:\n\n".bold().as_bytes());
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "help".custom_color((141, 141, 142)).bold(),
+                "Prints this help message.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "version".custom_color((141, 141, 142)).bold(),
+                "Prints the current version.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "toolchain".custom_color((141, 141, 142)).bold(),
+                "Manage a toolchain.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "new".custom_color((141, 141, 142)).bold(),
+                "Creates a new project.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "add".custom_color((141, 141, 142)).bold(),
+                "Adds a dependency.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "run".custom_color((141, 141, 142)).bold(),
+                "Runs the project.".bold()
+            )
+            .as_bytes(),
+        );
+
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "build".custom_color((141, 141, 142)).bold(),
+                "Builds the project.".bold()
+            )
+            .as_bytes(),
+        );
+
         process::exit(1);
     }
 
-    fn help(&mut self) {
-        let mut printer: Printer = Printer::default();
+    fn help_toolchain(&self) {
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {} {}\n\n",
+                "Thorium Package Manager"
+                    .custom_color((141, 141, 142))
+                    .bold(),
+                "|".bold().bright_white(),
+                "Toolchains".custom_color((141, 141, 142)).bold(),
+            )
+            .as_bytes(),
+        );
 
-        let title: &[StaticStringPrintable<'_>; 1] = &[StaticStringPrintable::new(
-            "\nThe Thrush Package Manager\n\n",
-            Some(style::Color::Rgb {
-                r: 141,
-                g: 141,
-                b: 142,
-            }),
-            false,
-            true,
-        )];
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {} {}\n\n",
+                "Usage:".bold(),
+                "thorium toolchain".custom_color((141, 141, 142)).bold(),
+                "[toolchain] [command]".bold(),
+            )
+            .as_bytes(),
+        );
 
-        printer.set_static_strings(title);
-        printer.print();
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{}\n {}\n\n",
+                "Available toolchains:".bold(),
+                format_args!(
+                    "{}{}{}{}",
+                    "• LLVM Toolchain".custom_color((141, 141, 142)).bold(),
+                    " (".bold(),
+                    "llvm".bright_white().bold(),
+                    ")".bold(),
+                )
+            )
+            .as_bytes(),
+        );
 
-        let usage: &[StaticStringPrintable<'_>; 3] = &[
-            StaticStringPrintable::new("Usage: ", None, true, true),
-            StaticStringPrintable::new(
-                "thorium ",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new("[commands]\n\n", None, true, true),
-        ];
+        logging::write(logging::OutputIn::Stderr, "Commands:\n\n".bold().as_bytes());
 
-        printer.set_static_strings(usage);
-        printer.print();
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "install".custom_color((141, 141, 142)).bold(),
+                "Installs the specified toolchain.".bold()
+            )
+            .as_bytes(),
+        );
 
-        let avaliable_commands: &[StaticStringPrintable<'_>; 1] = &[StaticStringPrintable::new(
-            "Avaliable commands:\n\n",
-            None,
-            true,
-            true,
-        )];
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "repair".custom_color((141, 141, 142)).bold(),
+                "Repairs any broken binaries of the toolchain.".bold()
+            )
+            .as_bytes(),
+        );
 
-        printer.set_static_strings(avaliable_commands);
-        printer.print();
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} [{}] {}\n",
+                "•".bold(),
+                "update".custom_color((141, 141, 142)).bold(),
+                "Updates the toolchain.".bold()
+            )
+            .as_bytes(),
+        );
 
-        let install_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "install",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new("Install compiler dependencies.\n", None, true, true),
-        ];
+        process::exit(1);
+    }
 
-        printer.set_static_strings(install_command);
-        printer.print();
+    fn help_new(&self) {
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {} {}\n\n",
+                "Thorium Package Manager"
+                    .custom_color((141, 141, 142))
+                    .bold(),
+                "|".bold().bright_white(),
+                "Create a new project".custom_color((141, 141, 142)).bold(),
+            )
+            .as_bytes(),
+        );
 
-        let new_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "new",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new("Create a new project.\n", None, true, true),
-        ];
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {} {}\n",
+                "Usage:".bold(),
+                "thorium new".custom_color((141, 141, 142)).bold(),
+                "[name]".bold(),
+            )
+            .as_bytes(),
+        );
 
-        printer.set_static_strings(new_command);
-        printer.print();
+        logging::write(
+            logging::OutputIn::Stderr,
+            format!(
+                "{} {}\n\n",
+                "Note:".bold(),
+                "The identifier cannot contain spaces and non UTF-8 characters."
+                    .custom_color((141, 141, 142))
+                    .bold()
+                    .underline(),
+            )
+            .as_bytes(),
+        );
 
-        let add_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "add",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new("Add new dependency to the project.\n", None, true, true),
-        ];
+        process::exit(1);
+    }
 
-        printer.set_static_strings(add_command);
-        printer.print();
+    fn get_arg(&self, index: &usize) -> &str {
+        self.args
+            .get(*index)
+            .unwrap_or(self.args.last().unwrap())
+            .trim()
+    }
 
-        let remove_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "remove",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new("Remove dependency to the project.\n", None, true, true),
-        ];
-
-        printer.set_static_strings(remove_command);
-        printer.print();
-
-        let run_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "run",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new(
-                "Build and run the entire project into the target.\n",
-                None,
-                true,
-                true,
-            ),
-        ];
-
-        printer.set_static_strings(run_command);
-        printer.print();
-
-        let build_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "build",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new(
-                "Build the entire project into the target.\n",
-                None,
-                true,
-                true,
-            ),
-        ];
-
-        printer.set_static_strings(build_command);
-        printer.print();
-
-        let avaliable_commands: &[StaticStringPrintable<'_>; 1] = &[StaticStringPrintable::new(
-            "\nUseful commands:\n\n",
-            None,
-            true,
-            true,
-        )];
-
-        printer.set_static_strings(avaliable_commands);
-        printer.print();
-
-        let version_command: &[StaticStringPrintable<'_>; 5] = &[
-            StaticStringPrintable::new("• ", None, true, true),
-            StaticStringPrintable::new("(", None, true, true),
-            StaticStringPrintable::new(
-                "version",
-                Some(style::Color::Rgb {
-                    r: 141,
-                    g: 141,
-                    b: 142,
-                }),
-                true,
-                true,
-            ),
-            StaticStringPrintable::new(") ", None, true, true),
-            StaticStringPrintable::new("Show the version.\n", None, true, true),
-        ];
-
-        printer.set_static_strings(version_command);
-        printer.print();
-
+    fn report_error(&mut self, msg: &str) {
+        logging::log(LoggingType::Error, msg);
         process::exit(1);
     }
 }

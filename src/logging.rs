@@ -1,39 +1,56 @@
-use {
-    super::printer::{Printer, StringPrintable},
-    crossterm::style::{Color, StyledContent, Stylize},
+use colored::{ColoredString, Colorize};
+
+use std::{
+    io::{self, Write},
+    process,
 };
 
-#[derive(Debug, PartialEq)]
-pub enum LogType {
-    Custom(String, Color),
-    Warning,
-    Panic,
-    Error,
+#[derive(Debug)]
+pub enum OutputIn {
+    Stdout,
+    Stderr,
 }
 
-impl LogType {
-    pub fn to_styled(&self) -> StyledContent<&str> {
+#[derive(Debug, PartialEq)]
+pub enum LoggingType {
+    Error,
+    Panic,
+}
+
+impl LoggingType {
+    pub fn to_styled(&self) -> ColoredString {
         match self {
-            LogType::Warning => crossterm::style::style("WARNING ").yellow(),
-            LogType::Panic => crossterm::style::style("PANIC ").red(),
-            LogType::Error => crossterm::style::style("ERROR ").red(),
-            LogType::Custom(s, color) => crossterm::style::style(s.as_str()).with(*color),
+            LoggingType::Error => "ERROR".bright_red().bold(),
+            LoggingType::Panic => "PANIC".bold().bright_red().underline(),
         }
     }
+
+    pub fn is_err(&self) -> bool {
+        matches!(self, LoggingType::Error | LoggingType::Panic)
+    }
 }
 
-pub fn log(log_type: LogType, message: String) {
-    let mut printer: Printer = Printer::default();
+pub fn log(ltype: LoggingType, msg: &str) {
+    if ltype.is_err() {
+        io::stderr()
+            .write_all(format!("  {} {}\n  ", ltype.to_styled(), msg.bold()).as_bytes())
+            .unwrap();
 
-    if [LogType::Error, LogType::Panic].contains(&log_type) {
-        printer.set_use_stderr(true);
+        if ltype == LoggingType::Error {
+            return;
+        } else {
+            process::exit(1);
+        };
     }
 
-    let strings: &mut [StringPrintable] = &mut [
-        StringPrintable::new(log_type.to_styled().to_string(), None, true, true),
-        StringPrintable::new(message, None, false, true),
-    ];
+    io::stdout()
+        .write_all(format!("  {} {}", ltype.to_styled(), msg.bold()).as_bytes())
+        .unwrap();
+}
 
-    printer.set_dynamic_strings(strings);
-    printer.print();
+pub fn write(output_in: OutputIn, bytes: &[u8]) {
+    match output_in {
+        OutputIn::Stdout => io::stdout().write_all(bytes).unwrap_or(()),
+        OutputIn::Stderr => io::stderr().write_all(bytes).unwrap_or(()),
+    };
 }

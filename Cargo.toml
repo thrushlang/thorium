@@ -1,12 +1,14 @@
 [package]
 name = "thorium"
-description = "The package manager for Thrush Programming Language."
-version = "0.1.0"
+description = "The Package Manager for Thrush Programming Language."
+license = "GPL-3.0"
+license-file = "LICENSE.txt"
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-toml = "0.8.20"
-crossterm = "0.28.1"
+toml = "0.8.22"
+colored = "3.0.0"
 lazy_static = "1.5.0"
 zenity = "3.6.1"
 isahc = "1.7.2"

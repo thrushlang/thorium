@@ -4,8 +4,11 @@ mod cli;
 mod commands;
 mod logging;
 mod parser;
-mod printer;
 
 fn main() {
+    if cfg!(target_os = "windows") {
+        colored::control::set_override(true);
+    }
+
     cli::Cli::parse(env::args().collect());
 }

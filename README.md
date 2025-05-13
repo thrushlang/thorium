@@ -3,7 +3,7 @@
 </p>
 
 > [!WARNING]
-> The development of the **Thush Package Manager** (thorium) is incomplete; build the program at your own risk—it may contain bugs.
+> TThe development of **The Thrush Package Manager** (thorium) is incomplete and constantly changing; build the program at your own risk, as it may contain errors.
 
 # The Thrush Package Manager 
 

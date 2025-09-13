@@ -1,4 +1,4 @@
-<img src= "https://github.com/thrushlang/thrushc/blob/master/assets/thrushlang-logo-v1.5.png" alt= "logo" style= "width: 80%; height: 80%;"> </img>
+<img src= "https://github.com/thrushlang/.github/blob/main/assets/logos/thrushlang-logo.png" alt= "logo" style= "width: 80%; height: 80%;"> </img>
 
 > [!WARNING]
 > TThe development of **The Thrush Package Manager** (thorium) is incomplete and constantly changing; build the program at your own risk, as it may contain errors.
